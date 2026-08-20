@@ -1,9 +1,6 @@
 from fastapi import FastAPI
 from app.db.database import Base,engine
-import app.models.project
-import app.models.project_member
-import app.models.task
-import app.models.user
+from app.models import user,task,project_member,project
 
 app = FastAPI()
 
