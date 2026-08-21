@@ -7,6 +7,8 @@ from app.services import user_service
 from app.schemas.response import api_response
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.core.security import create_access_token
+from app.dependencies.dependencies import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -31,5 +33,14 @@ def login(login_data: LoginRequest, request: Request, db: Session = Depends(get_
         status.HTTP_200_OK,
         "Đăng nhập thành công",
         TokenResponse(access_token=access_token),
+        request
+    )
+
+@router.get("/me", response_model=APIResponse)
+def get_me(request: Request, current_user: User = Depends(get_current_user)):
+    return api_response(
+        status.HTTP_200_OK,
+        "Lấy thông tin thành công",
+        UserResponse.model_validate(current_user),
         request
     )
