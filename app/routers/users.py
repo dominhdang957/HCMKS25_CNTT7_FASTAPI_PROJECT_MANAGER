@@ -21,18 +21,3 @@ def get_my_profile(request: Request, current_user: User = Depends(get_current_us
         request
     )
 
-@router.get("", response_model=APIResponse)
-def list_users(
-    request: Request,
-    search: Optional[str] = None,
-    is_active: Optional[bool] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
-):
-    users = user_service.get_users(db, search=search, is_active=is_active)
-    return api_response(
-        status.HTTP_200_OK,
-        f"Lấy danh sách thành công {len(users)} kết quả",
-        [UserResponse.model_validate(u) for u in users],
-        request
-    )
