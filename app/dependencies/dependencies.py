@@ -2,11 +2,12 @@ from fastapi import Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from jwt.exceptions import PyJWTError
+from typing import List
 
 from app.db.database import get_db
 from app.core.security import decode_access_token
-from app.models.user import User
-from app.core.exceptions import UnauthorizedException
+from app.models.user import User, UserRole
+from app.core.exceptions import UnauthorizedException, ForbiddenException
 
 bearer_scheme = HTTPBearer()
 
@@ -15,7 +16,7 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db)
 ) -> User:
-    token = credentials.credentials  # lấy phần token từ "Bearer <token>"
+    token = credentials.credentials
 
     try:
         payload = decode_access_token(token)
@@ -32,3 +33,15 @@ def get_current_user(
         raise UnauthorizedException(detail="Tài khoản đã bị khóa")
 
     return user
+
+
+def require_role(allowed_roles: List[UserRole]):
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise ForbiddenException(detail="Bạn không có quyền thực hiện thao tác này")
+        return current_user
+    return role_checker
+
+
+# Dùng sẵn cho case phổ biến nhất — chỉ Admin
+require_admin = require_role([UserRole.ADMIN])

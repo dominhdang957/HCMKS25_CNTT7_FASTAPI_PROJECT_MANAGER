@@ -7,8 +7,9 @@ from app.services import user_service
 from app.schemas.response import api_response
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.core.security import create_access_token
-from app.dependencies.dependencies import get_current_user
+from app.dependencies.dependencies import get_current_user,require_admin
 from app.models.user import User
+
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -44,3 +45,7 @@ def get_me(request: Request, current_user: User = Depends(get_current_user)):
         UserResponse.model_validate(current_user),
         request
     )
+
+@router.get("/admin-only")
+def admin_only_route(current_user: User = Depends(require_admin)):
+    return {"message": f"Xin chào Admin {current_user.full_name}"}
