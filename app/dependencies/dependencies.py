@@ -1,30 +1,35 @@
 from fastapi import Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from jwt.exceptions import PyJWTError
 from typing import List
-
 from app.db.database import get_db
 from app.core.security import decode_access_token
 from app.models.user import User, UserRole
 from app.core.exceptions import UnauthorizedException, ForbiddenException
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
-bearer_scheme = HTTPBearer()
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db)
 ) -> User:
+
+    if credentials is None:
+        raise UnauthorizedException(detail="Thiếu token xác thực")
     token = credentials.credentials
 
     try:
         payload = decode_access_token(token)
-        user_id = payload.get("sub")
-        if user_id is None:
-            raise UnauthorizedException(detail="Token không hợp lệ")
-    except PyJWTError:
-        raise UnauthorizedException(detail="Token không hợp lệ hoặc đã hết hạn")
+    except ExpiredSignatureError:
+        raise UnauthorizedException(detail="Token đã hết hạn, vui lòng đăng nhập lại")
+    except InvalidTokenError:
+        raise UnauthorizedException(detail="Token không hợp lệ")
+
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise UnauthorizedException(detail="Token không hợp lệ")
 
     user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None:
