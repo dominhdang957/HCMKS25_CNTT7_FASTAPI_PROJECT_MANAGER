@@ -20,17 +20,17 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     hashed_bytes = hashed_password.encode('utf-8')
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 
-# def create_access_token(data: dict) -> str:
-#     """
-#     Tạo Access Token (JWT) dựa trên thông tin payload (data) được truyền vào.
-#     """
-#     to_encode = data.copy()
+def create_access_token(data: dict) -> str:
+    """
+    Tạo Access Token (JWT) dựa trên thông tin payload (data) được truyền vào.
+    """
+    to_encode = data.copy()
 
-#     # Tính toán thời gian hết hạn (expiration time) - đọc từ config
-#     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-#     to_encode.update({"exp": expire})
+    # Tính toán thời gian hết hạn (expiration time) - đọc từ config
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
 
-#     # Ký và tạo chuỗi token bằng thư viện PyJWT - đọc SECRET_KEY từ config
-#     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    # Ký và tạo chuỗi token bằng thư viện PyJWT - đọc SECRET_KEY từ config
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
-#     return encoded_jwt
+    return encoded_jwt

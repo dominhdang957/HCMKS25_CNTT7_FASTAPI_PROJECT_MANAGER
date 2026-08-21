@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.schemas.user import UserCreate
-from app.core.security import hash_password
-from app.core.exceptions import BadRequestException
+from app.core.security import hash_password,verify_password
+from app.core.exceptions import BadRequestException,UnauthorizedException,ForbiddenException
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
@@ -24,3 +24,13 @@ def create_user(db: Session, user_data: UserCreate) -> User:
     db.commit()
     db.refresh(new_user)
     return new_user
+
+def authenticate_user(db: Session, email: str, password: str) -> User:
+    user = get_user_by_email(db, email)
+    if not user:
+        raise UnauthorizedException(detail="Email hoặc mật khẩu không đúng")
+    if not verify_password(password, user.password_hash):
+        raise UnauthorizedException(detail="Email hoặc mật khẩu không đúng")
+    if not user.is_active:
+        raise ForbiddenException(detail="Tài khoản đã bị khóa")
+    return user
