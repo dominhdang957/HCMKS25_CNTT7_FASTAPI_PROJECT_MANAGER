@@ -5,6 +5,9 @@ from app.schemas.project import ProjectCreate
 from typing import Optional
 from app.core.exceptions import NotFoundException, ForbiddenException
 from app.schemas.project import ProjectUpdate
+from app.models.user import User as UserModel
+from app.schemas.project_member import ProjectMemberCreate
+from app.core.exceptions import BadRequestException
 
 
 def create_project(db: Session, project_data: ProjectCreate, owner_id: int) -> Project:
@@ -98,3 +101,45 @@ def delete_project(db: Session, project_id: int, user_id: int) -> None:
 
     db.delete(project)
     db.commit()
+
+
+def add_member(
+    db: Session,
+    project_id: int,
+    owner_id: int,
+    member_data: ProjectMemberCreate,
+) -> ProjectMember:
+    # Bước 1: kiểm tra project tồn tại + người gọi là OWNER
+    check_is_owner(db, project_id, owner_id)
+
+    # Bước 2: chặn gán role OWNER qua API này — OWNER chỉ được xác định khi tạo project
+    if member_data.role == ProjectMemberRole.OWNER:
+        raise BadRequestException(detail="Không thể gán vai trò OWNER khi thêm thành viên")
+
+    # Bước 3: kiểm tra user muốn thêm có tồn tại không
+    target_user = db.query(UserModel).filter(UserModel.id == member_data.user_id).first()
+    if not target_user:
+        raise NotFoundException(detail="Không tìm thấy user muốn thêm")
+
+    # Bước 4: kiểm tra đã là thành viên chưa (tránh trùng)
+    existing = (
+        db.query(ProjectMember)
+        .filter(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == member_data.user_id,
+        )
+        .first()
+    )
+    if existing:
+        raise BadRequestException(detail="User này đã là thành viên của dự án")
+
+    # Bước 5: thêm mới, LUÔN ép role = MEMBER (bỏ qua giá trị client gửi, cho chắc chắn)
+    new_member = ProjectMember(
+        project_id=project_id,
+        user_id=member_data.user_id,
+        role=ProjectMemberRole.MEMBER,
+    )
+    db.add(new_member)
+    db.commit()
+    db.refresh(new_member)
+    return new_member

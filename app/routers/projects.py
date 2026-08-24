@@ -4,11 +4,11 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.dependencies.dependencies import get_current_user 
 from app.models.user import User
-from app.schemas.project import ProjectCreate, ProjectResponse
+from app.schemas.project import ProjectCreate, ProjectResponse,ProjectUpdate
 from app.schemas.response import api_response,APIResponse
 from app.services import project_service
 from typing import Optional, List
-from app.schemas.project import ProjectUpdate
+from app.schemas.project_member import ProjectMemberCreate, ProjectMemberResponse
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -85,5 +85,21 @@ def delete_project(
         status.HTTP_200_OK,
         "Xóa dự án thành công",
         None,
+        request,
+    )
+
+@router.post("/{project_id}/members", response_model=APIResponse)
+def add_member(
+    project_id: int,
+    member_data: ProjectMemberCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    new_member = project_service.add_member(db, project_id, current_user.id, member_data)
+    return api_response(
+        status.HTTP_201_CREATED,
+        "Thêm thành viên thành công",
+        ProjectMemberResponse.model_validate(new_member),
         request,
     )
