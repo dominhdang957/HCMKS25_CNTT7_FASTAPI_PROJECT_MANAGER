@@ -40,13 +40,14 @@ def get_current_user(
     return user
 
 
-def require_role(allowed_roles: List[UserRole]):
-    def role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in allowed_roles:
+class RoleChecker:
+    def __init__(self, allowed_roles: List[UserRole]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in self.allowed_roles:
             raise ForbiddenException(detail="Bạn không có quyền thực hiện thao tác này")
         return current_user
-    return role_checker
 
 
-# Dùng sẵn cho case phổ biến nhất — chỉ Admin
-require_admin = require_role([UserRole.ADMIN])
+

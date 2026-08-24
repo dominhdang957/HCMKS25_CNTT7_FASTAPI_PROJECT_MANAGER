@@ -10,7 +10,7 @@ class APIResponse(BaseModel):
     data: Any = None
     timestamp: datetime
     path: str
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(from_attributes=True)
 
 def api_response(status_code:int,message:str,data:Any,request:Request):
     return APIResponse(

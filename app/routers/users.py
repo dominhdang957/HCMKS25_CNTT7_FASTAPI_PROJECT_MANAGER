@@ -4,7 +4,7 @@ from app.models.user import User
 from app.schemas.user import UserResponse
 from app.schemas.response import APIResponse,api_response
 from typing import Optional, List
-from app.dependencies.dependencies import require_admin
+from app.dependencies.dependencies import RoleChecker
 from app.db.database import get_db
 from app.services import user_service
 from sqlalchemy.orm import Session
@@ -27,7 +27,7 @@ def list_users(
     search: Optional[str] = None,
     is_active: Optional[bool] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(RoleChecker(["ADMIN"])),
 ):
     users = user_service.get_users(db, search=search, is_active=is_active)
     return api_response(
