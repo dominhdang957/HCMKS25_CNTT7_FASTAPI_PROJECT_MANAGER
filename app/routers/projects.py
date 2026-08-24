@@ -38,3 +38,18 @@ def list_projects(
         [ProjectResponse.model_validate(p) for p in projects],
         request,
     )
+
+@router.get("/{project_id}", response_model=APIResponse)
+def get_project(
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = project_service.get_project_detail(db, project_id, current_user.id)
+    return api_response(
+        status.HTTP_200_OK,
+        "Lấy chi tiết dự án thành công",
+        ProjectResponse.model_validate(project),
+        request,
+    )
