@@ -173,3 +173,27 @@ def remove_member(
     # Bước 4: xóa
     db.delete(member)
     db.commit()
+
+
+def get_members(db: Session, project_id: int, user_id: int) -> list[ProjectMember]:
+    # Chỉ cần là thành viên (owner hoặc member) mới được xem danh sách — giống điều kiện task 3
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise NotFoundException(detail="Không tìm thấy dự án")
+
+    is_member = (
+        db.query(ProjectMember)
+        .filter(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user_id,
+        )
+        .first()
+    )
+    if not is_member:
+        raise ForbiddenException(detail="Bạn không phải thành viên của dự án này")
+
+    return (
+        db.query(ProjectMember)
+        .filter(ProjectMember.project_id == project_id)
+        .all()
+    )

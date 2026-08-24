@@ -7,7 +7,7 @@ from app.models.user import User
 from app.schemas.project import ProjectCreate, ProjectResponse,ProjectUpdate
 from app.schemas.response import api_response,APIResponse
 from app.services import project_service
-from typing import Optional, List
+from typing import Optional
 from app.schemas.project_member import ProjectMemberCreate, ProjectMemberResponse
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
@@ -117,5 +117,20 @@ def remove_member(
         status.HTTP_200_OK,
         "Xóa thành viên thành công",
         None,
+        request,
+    )
+
+@router.get("/{project_id}/members", response_model=APIResponse)
+def get_members(
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    members = project_service.get_members(db, project_id, current_user.id)
+    return api_response(
+        status.HTTP_200_OK,
+        f"Lấy danh sách thành viên thành công ({len(members)} thành viên)",
+        [ProjectMemberResponse.model_validate(m) for m in members],
         request,
     )
