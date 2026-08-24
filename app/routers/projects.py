@@ -103,3 +103,19 @@ def add_member(
         ProjectMemberResponse.model_validate(new_member),
         request,
     )
+
+@router.delete("/{project_id}/members/{user_id}", response_model=APIResponse)
+def remove_member(
+    project_id: int,
+    user_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project_service.remove_member(db, project_id, current_user.id, user_id)
+    return api_response(
+        status.HTTP_200_OK,
+        "Xóa thành viên thành công",
+        None,
+        request,
+    )

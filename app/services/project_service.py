@@ -143,3 +143,33 @@ def add_member(
     db.commit()
     db.refresh(new_member)
     return new_member
+
+
+def remove_member(
+    db: Session,
+    project_id: int,
+    owner_id: int,
+    target_user_id: int,
+) -> None:
+    # Bước 1: kiểm tra project tồn tại + người gọi là OWNER
+    check_is_owner(db, project_id, owner_id)
+
+    # Bước 2: tìm dòng project_member cần xóa
+    member = (
+        db.query(ProjectMember)
+        .filter(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == target_user_id,
+        )
+        .first()
+    )
+    if not member:
+        raise NotFoundException(detail="User này không phải thành viên của dự án")
+
+    # Bước 3: không cho xóa chính OWNER (kể cả owner tự xóa chính mình)
+    if member.role == ProjectMemberRole.OWNER:
+        raise BadRequestException(detail="Không thể xóa chủ dự án (OWNER) khỏi dự án")
+
+    # Bước 4: xóa
+    db.delete(member)
+    db.commit()
