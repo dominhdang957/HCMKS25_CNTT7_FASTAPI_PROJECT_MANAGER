@@ -8,6 +8,7 @@ from app.schemas.project import ProjectUpdate
 from app.models.user import User as UserModel
 from app.schemas.project_member import ProjectMemberCreate
 from app.core.exceptions import BadRequestException
+from app.services.activity_log_service import log_activity
 
 
 def create_project(db: Session, project_data: ProjectCreate, owner_id: int) -> Project:
@@ -29,6 +30,12 @@ def create_project(db: Session, project_data: ProjectCreate, owner_id: int) -> P
     )
     db.add(owner_member)
     db.commit()
+
+    log_activity(
+        db, new_project.id, owner_id,
+        action="CREATE_PROJECT",
+        description=f"Tạo dự án '{new_project.name}'",
+    )
 
     return new_project
 
@@ -90,6 +97,12 @@ def update_project(db: Session, project_id: int, user_id: int, update_data: Proj
 
     db.commit()
     db.refresh(project)
+
+    log_activity(
+        db, project_id, user_id,
+        action="UPDATE_PROJECT",
+        description=f"Cập nhật dự án: {list(update_fields.keys())}",
+    )
     return project
 
 
@@ -142,6 +155,12 @@ def add_member(
     db.add(new_member)
     db.commit()
     db.refresh(new_member)
+
+    log_activity(
+        db, project_id, owner_id,
+        action="ADD_MEMBER",
+        description=f"Thêm user id={member_data.user_id} vào dự án",
+    )
     return new_member
 
 
@@ -173,6 +192,12 @@ def remove_member(
     # Bước 4: xóa
     db.delete(member)
     db.commit()
+
+    log_activity(
+        db, project_id, owner_id,
+        action="REMOVE_MEMBER",
+        description=f"Xóa user id={target_user_id} khỏi dự án",
+    )
 
 
 def get_members(db: Session, project_id: int, user_id: int) -> list[ProjectMember]:

@@ -9,6 +9,8 @@ from app.schemas.response import api_response,APIResponse
 from app.services import project_service
 from typing import Optional
 from app.schemas.project_member import ProjectMemberCreate, ProjectMemberResponse
+from app.models.activity_log import ActivityLog
+from app.schemas.activity_log import ActivityLogResponse
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -132,5 +134,28 @@ def get_members(
         status.HTTP_200_OK,
         f"Lấy danh sách thành viên thành công ({len(members)} thành viên)",
         [ProjectMemberResponse.model_validate(m) for m in members],
+        request,
+    )
+
+
+@router.get("/{project_id}/logs", response_model=APIResponse)
+def get_logs(
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project_service.check_is_owner(db, project_id, current_user.id) 
+
+    logs = (
+        db.query(ActivityLog)
+        .filter(ActivityLog.project_id == project_id)
+        .order_by(ActivityLog.created_at.desc())
+        .all()
+    )
+    return api_response(
+        status.HTTP_200_OK,
+        f"Lấy lịch sử hoạt động thành công ({len(logs)} bản ghi)",
+        [ActivityLogResponse.model_validate(log) for log in logs],
         request,
     )

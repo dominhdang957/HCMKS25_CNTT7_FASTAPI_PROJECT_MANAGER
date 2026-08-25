@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.db.database import Base,engine
-from app.models import user,task,project_member,project
+from app.models import user,task,project_member,project,activity_log
 from app.core.error_handlers import register_error_handlers
 from app.core.exceptions import NotFoundException
 from app.routers import auth,users,projects
