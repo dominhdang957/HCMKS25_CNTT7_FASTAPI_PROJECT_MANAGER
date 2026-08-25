@@ -31,3 +31,8 @@ class UserResponse(UserBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class OwnerResponse(UserBase):
+    pass
+
+    model_config = ConfigDict(from_attributes=True)

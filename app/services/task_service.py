@@ -38,3 +38,14 @@ def create_task(db: Session, project_id: int, user_id: int, task_data: TaskCreat
     db.commit()
     db.refresh(new_task)
     return new_task
+
+def get_tasks(db: Session, project_id: int, user_id: int) -> list[Task]:
+    # Chỉ cần là thành viên (owner hoặc member) mới được xem danh sách task
+    check_is_member(db, project_id, user_id)
+
+    return (
+        db.query(Task)
+        .filter(Task.project_id == project_id)
+        .order_by(Task.created_at.desc())
+        .all()
+    )

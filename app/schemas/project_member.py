@@ -8,8 +8,8 @@ class ProjectMemberBase(BaseModel):
     role: ProjectMemberRole
 
 
-class ProjectMemberCreate(ProjectMemberBase):
-    pass  # project_id lấy từ URL path (VD: /projects/{project_id}/members)
+class ProjectMemberCreate(BaseModel):
+    user_id: int  # project_id lấy từ URL path (VD: /projects/{project_id}/members)
 
 
 class ProjectMemberUpdate(BaseModel):
