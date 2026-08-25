@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.models.project import Project
-from app.models.project_member import ProjectMember
+from app.models.project_member import ProjectMember,ProjectMemberRole
 from app.schemas.task import TaskCreate,TaskUpdate
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
-from app.services.project_service import check_is_member
+from app.services.project_service import check_is_member,check_is_owner
 from typing import Optional,Literal
 from sqlalchemy import asc,desc
 
@@ -104,15 +104,33 @@ def update_task(db: Session, task_id: int, user_id: int, update_data: TaskUpdate
     if not task:
         raise NotFoundException(detail="Không tìm thấy task")
 
-    # Tạm thời: mọi thành viên project đều được sửa task (sẽ siết chặt hơn ở task "Permission matrix")
-    check_is_member(db, task.project_id, user_id)
+    role = get_project_role(db, task.project_id, user_id)
+    if role is None:
+        raise ForbiddenException(detail="Bạn không phải thành viên của dự án này")
+
+    is_owner = (role == ProjectMemberRole.OWNER)
+    is_assignee = (task.assignee_id == user_id)
 
     update_fields = update_data.model_dump(exclude_unset=True)
 
+    # ---- Chặn MEMBER thường (không phải owner, không phải assignee) ----
+    if not is_owner and not is_assignee:
+        raise ForbiddenException(detail="Bạn không có quyền cập nhật task này")
+
+    # ---- Assignee CHỈ được đổi status, không được đổi field khác ----
+    if not is_owner and is_assignee:
+        allowed_fields = {"status"}
+        not_allowed = set(update_fields.keys()) - allowed_fields
+        if not_allowed:
+            raise ForbiddenException(
+                detail=f"Bạn chỉ có quyền cập nhật trạng thái task, không được sửa: {', '.join(not_allowed)}"
+            )
+
+    # ---- Validate status transition (đã có từ task 7) ----
     if "status" in update_fields:
         validate_status_transition(task.status, update_fields["status"])
 
-    # Nếu có đổi assignee_id, kiểm tra assignee mới phải là thành viên project
+    # ---- Validate assignee mới phải là thành viên project (đã có từ task 4) ----
     if "assignee_id" in update_fields and update_fields["assignee_id"] is not None:
         is_assignee_member = (
             db.query(ProjectMember)
@@ -122,8 +140,6 @@ def update_task(db: Session, task_id: int, user_id: int, update_data: TaskUpdate
             )
             .first()
         )
-
-
         if not is_assignee_member:
             raise BadRequestException(detail="Người được giao việc phải là thành viên của dự án")
 
@@ -140,8 +156,7 @@ def delete_task(db: Session, task_id: int, user_id: int) -> None:
     if not task:
         raise NotFoundException(detail="Không tìm thấy task")
 
-    # Tạm thời: mọi thành viên project đều được xóa task (sẽ siết chặt ở task "Permission matrix")
-    check_is_member(db, task.project_id, user_id)
+    project = check_is_owner(db, task.project_id, user_id)  # dùng lại hàm đã có sẵn từ phần Project
 
     db.delete(task)
     db.commit()
@@ -162,3 +177,15 @@ def validate_status_transition(current_status: TaskStatus, new_status: TaskStatu
         raise BadRequestException(
             detail=f"Không thể chuyển task từ '{current_status.value}' sang '{new_status.value}'"
         )
+
+def get_project_role(db: Session, project_id: int, user_id: int) -> Optional[ProjectMemberRole]:
+    """Lấy role của user trong project (None nếu không phải thành viên)"""
+    member = (
+        db.query(ProjectMember)
+        .filter(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user_id,
+        )
+        .first()
+    )
+    return member.role if member else None
