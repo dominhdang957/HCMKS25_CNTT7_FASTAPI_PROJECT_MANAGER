@@ -145,7 +145,7 @@ def get_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    project_service.check_is_owner(db, project_id, current_user.id) 
+    project_service.check_is_member(db, project_id, current_user.id) 
 
     logs = (
         db.query(ActivityLog)

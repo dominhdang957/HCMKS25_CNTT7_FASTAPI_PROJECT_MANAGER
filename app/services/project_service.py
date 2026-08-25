@@ -57,23 +57,7 @@ def get_projects_for_user(
     return query.order_by(Project.created_at.desc()).all()
 
 def get_project_detail(db: Session, project_id: int, user_id: int) -> Project:
-    project = db.query(Project).filter(Project.id == project_id).first()
-
-    if not project:
-        raise NotFoundException(detail="Không tìm thấy dự án")
-
-    is_member = (
-        db.query(ProjectMember)
-        .filter(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == user_id,
-        )
-        .first()
-    )
-    if not is_member:
-        raise ForbiddenException(detail="Bạn không phải thành viên của dự án này")
-
-    return project
+    return check_is_member(db, project_id, user_id)
 
 
 def check_is_owner(db: Session, project_id: int, user_id: int) -> Project:
@@ -201,7 +185,15 @@ def remove_member(
 
 
 def get_members(db: Session, project_id: int, user_id: int) -> list[ProjectMember]:
-    # Chỉ cần là thành viên (owner hoặc member) mới được xem danh sách — giống điều kiện task 3
+    check_is_member(db, project_id, user_id)
+    return (
+        db.query(ProjectMember)
+        .filter(ProjectMember.project_id == project_id)
+        .all()
+    )
+
+def check_is_member(db: Session, project_id: int, user_id: int) -> Project:
+    """Kiểm tra project tồn tại + user là thành viên (owner hoặc member), trả về project"""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise NotFoundException(detail="Không tìm thấy dự án")
@@ -217,8 +209,4 @@ def get_members(db: Session, project_id: int, user_id: int) -> list[ProjectMembe
     if not is_member:
         raise ForbiddenException(detail="Bạn không phải thành viên của dự án này")
 
-    return (
-        db.query(ProjectMember)
-        .filter(ProjectMember.project_id == project_id)
-        .all()
-    )
+    return project

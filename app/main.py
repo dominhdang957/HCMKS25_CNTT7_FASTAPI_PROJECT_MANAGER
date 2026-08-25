@@ -3,13 +3,14 @@ from app.db.database import Base,engine
 from app.models import user,task,project_member,project,activity_log
 from app.core.error_handlers import register_error_handlers
 from app.core.exceptions import NotFoundException
-from app.routers import auth,users,projects
+from app.routers import auth,users,projects,tasks
 
 app = FastAPI()
 
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(projects.router)
+app.include_router(tasks.router)
 Base.metadata.create_all(bind=engine)
 
 register_error_handlers(app)
