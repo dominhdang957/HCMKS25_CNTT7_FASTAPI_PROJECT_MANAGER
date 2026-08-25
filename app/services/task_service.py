@@ -5,6 +5,7 @@ from app.models.project_member import ProjectMember
 from app.schemas.task import TaskCreate,TaskUpdate
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.services.project_service import check_is_member
+from typing import Optional
 
 
 
@@ -40,16 +41,32 @@ def create_task(db: Session, project_id: int, user_id: int, task_data: TaskCreat
     db.refresh(new_task)
     return new_task
 
-def get_tasks(db: Session, project_id: int, user_id: int) -> list[Task]:
-    # Chỉ cần là thành viên (owner hoặc member) mới được xem danh sách task
+def get_tasks(
+    db: Session,
+    project_id: int,
+    user_id: int,
+    search: Optional[str] = None,
+    status: Optional[TaskStatus] = None,
+    priority: Optional[TaskPriority] = None,
+    assignee_id: Optional[int] = None,
+) -> list[Task]:
     check_is_member(db, project_id, user_id)
 
-    return (
-        db.query(Task)
-        .filter(Task.project_id == project_id)
-        .order_by(Task.created_at.desc())
-        .all()
-    )
+    query = db.query(Task).filter(Task.project_id == project_id)
+
+    if search:
+        query = query.filter(Task.title.ilike(f"%{search}%"))
+
+    if status is not None:
+        query = query.filter(Task.status == status)
+
+    if priority is not None:
+        query = query.filter(Task.priority == priority)
+
+    if assignee_id is not None:
+        query = query.filter(Task.assignee_id == assignee_id)
+
+    return query.order_by(Task.created_at.desc()).all()
 
 def get_task_detail(db: Session, task_id: int, user_id: int) -> Task:
     task = db.query(Task).filter(Task.id == task_id).first()

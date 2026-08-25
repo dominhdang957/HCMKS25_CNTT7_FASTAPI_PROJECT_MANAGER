@@ -7,6 +7,8 @@ from app.models.user import User
 from app.schemas.task import TaskCreate, TaskResponse
 from app.schemas.response import APIResponse,api_response
 from app.services import task_service
+from app.models.task import TaskStatus, TaskPriority
+from typing import Optional
 
 router = APIRouter(prefix="/projects/{project_id}/tasks", tags=["Tasks"])
 
@@ -31,10 +33,17 @@ def create_task(
 def get_tasks(
     project_id: int,
     request: Request,
+    search: Optional[str] = None,
+    status_task: Optional[TaskStatus] = None,
+    priority: Optional[TaskPriority] = None,
+    assignee_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    tasks = task_service.get_tasks(db, project_id, current_user.id)
+    tasks = task_service.get_tasks(
+        db, project_id, current_user.id,
+        search=search, status=status_task, priority=priority, assignee_id=assignee_id,
+    )
     return api_response(
         status.HTTP_200_OK,
         f"Lấy danh sách task thành công ({len(tasks)} task)",
