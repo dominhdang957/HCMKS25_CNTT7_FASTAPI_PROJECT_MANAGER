@@ -2,9 +2,10 @@ from sqlalchemy.orm import Session
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.models.project import Project
 from app.models.project_member import ProjectMember
-from app.schemas.task import TaskCreate
+from app.schemas.task import TaskCreate,TaskUpdate
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.services.project_service import check_is_member
+
 
 
 def create_task(db: Session, project_id: int, user_id: int, task_data: TaskCreate) -> Task:
@@ -58,4 +59,35 @@ def get_task_detail(db: Session, task_id: int, user_id: int) -> Task:
     # Kiểm tra user có phải thành viên của project chứa task này không
     check_is_member(db, task.project_id, user_id)
 
+    return task
+
+
+def update_task(db: Session, task_id: int, user_id: int, update_data: TaskUpdate) -> Task:
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise NotFoundException(detail="Không tìm thấy task")
+
+    # Tạm thời: mọi thành viên project đều được sửa task (sẽ siết chặt hơn ở task "Permission matrix")
+    check_is_member(db, task.project_id, user_id)
+
+    update_fields = update_data.model_dump(exclude_unset=True)
+
+    # Nếu có đổi assignee_id, kiểm tra assignee mới phải là thành viên project
+    if "assignee_id" in update_fields and update_fields["assignee_id"] is not None:
+        is_assignee_member = (
+            db.query(ProjectMember)
+            .filter(
+                ProjectMember.project_id == task.project_id,
+                ProjectMember.user_id == update_fields["assignee_id"],
+            )
+            .first()
+        )
+        if not is_assignee_member:
+            raise BadRequestException(detail="Người được giao việc phải là thành viên của dự án")
+
+    for field, value in update_fields.items():
+        setattr(task, field, value)
+
+    db.commit()
+    db.refresh(task)
     return task
