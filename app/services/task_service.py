@@ -49,3 +49,13 @@ def get_tasks(db: Session, project_id: int, user_id: int) -> list[Task]:
         .order_by(Task.created_at.desc())
         .all()
     )
+
+def get_task_detail(db: Session, task_id: int, user_id: int) -> Task:
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise NotFoundException(detail="Không tìm thấy task")
+
+    # Kiểm tra user có phải thành viên của project chứa task này không
+    check_is_member(db, task.project_id, user_id)
+
+    return task

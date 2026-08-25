@@ -109,9 +109,6 @@ def add_member(
     # Bước 1: kiểm tra project tồn tại + người gọi là OWNER
     check_is_owner(db, project_id, owner_id)
 
-    # Bước 2: chặn gán role OWNER qua API này — OWNER chỉ được xác định khi tạo project
-    if member_data.role == ProjectMemberRole.OWNER:
-        raise BadRequestException(detail="Không thể gán vai trò OWNER khi thêm thành viên")
 
     # Bước 3: kiểm tra user muốn thêm có tồn tại không
     target_user = db.query(UserModel).filter(UserModel.id == member_data.user_id).first()
