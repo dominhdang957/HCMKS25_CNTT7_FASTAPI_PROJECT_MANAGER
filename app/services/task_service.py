@@ -91,3 +91,15 @@ def update_task(db: Session, task_id: int, user_id: int, update_data: TaskUpdate
     db.commit()
     db.refresh(task)
     return task
+
+
+def delete_task(db: Session, task_id: int, user_id: int) -> None:
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise NotFoundException(detail="Không tìm thấy task")
+
+    # Tạm thời: mọi thành viên project đều được xóa task (sẽ siết chặt ở task "Permission matrix")
+    check_is_member(db, task.project_id, user_id)
+
+    db.delete(task)
+    db.commit()

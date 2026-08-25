@@ -44,3 +44,18 @@ def update_task(
         TaskResponse.model_validate(task),
         request,
     )
+
+@router.delete("/{task_id}", response_model=APIResponse)
+def delete_task(
+    task_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    task_service.delete_task(db, task_id, current_user.id)
+    return api_response(
+        status.HTTP_200_OK,
+        "Xóa task thành công",
+        None,
+        request,
+    )
