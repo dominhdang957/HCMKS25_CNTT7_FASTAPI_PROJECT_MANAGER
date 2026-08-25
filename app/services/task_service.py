@@ -5,7 +5,8 @@ from app.models.project_member import ProjectMember
 from app.schemas.task import TaskCreate,TaskUpdate
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.services.project_service import check_is_member
-from typing import Optional
+from typing import Optional,Literal
+from sqlalchemy import asc,desc
 
 
 
@@ -49,24 +50,43 @@ def get_tasks(
     status: Optional[TaskStatus] = None,
     priority: Optional[TaskPriority] = None,
     assignee_id: Optional[int] = None,
-) -> list[Task]:
+    sort_by: Literal["created_at", "due_date"] = "created_at",
+    sort_order: Literal["asc", "desc"] = "desc",
+    page: int = 1,
+    size: int = 10,
+) -> dict:
     check_is_member(db, project_id, user_id)
 
     query = db.query(Task).filter(Task.project_id == project_id)
 
     if search:
         query = query.filter(Task.title.ilike(f"%{search}%"))
-
     if status is not None:
         query = query.filter(Task.status == status)
-
     if priority is not None:
         query = query.filter(Task.priority == priority)
-
     if assignee_id is not None:
         query = query.filter(Task.assignee_id == assignee_id)
 
-    return query.order_by(Task.created_at.desc()).all()
+    # ---- Đếm tổng số kết quả TRƯỚC khi phân trang ----
+    total = query.count()
+
+    # ---- Sort ----
+    sort_column = getattr(Task, sort_by)
+    order_func = desc if sort_order == "desc" else asc
+    query = query.order_by(order_func(sort_column))
+
+    # ---- Pagination ----
+    offset = (page - 1) * size
+    tasks = query.offset(offset).limit(size).all()
+
+    return {
+        "items": tasks,
+        "total": total,
+        "page": page,
+        "size": size,
+        "total_pages": (total + size - 1) // size,  # làm tròn lên
+    }
 
 def get_task_detail(db: Session, task_id: int, user_id: int) -> Task:
     task = db.query(Task).filter(Task.id == task_id).first()

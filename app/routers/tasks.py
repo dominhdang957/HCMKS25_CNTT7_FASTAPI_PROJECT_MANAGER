@@ -8,7 +8,8 @@ from app.schemas.task import TaskCreate, TaskResponse
 from app.schemas.response import APIResponse,api_response
 from app.services import task_service
 from app.models.task import TaskStatus, TaskPriority
-from typing import Optional
+from typing import Optional,Literal
+from app.schemas.pagination import PaginatedResponse
 
 router = APIRouter(prefix="/projects/{project_id}/tasks", tags=["Tasks"])
 
@@ -37,16 +38,31 @@ def get_tasks(
     status_task: Optional[TaskStatus] = None,
     priority: Optional[TaskPriority] = None,
     assignee_id: Optional[int] = None,
+    sort_by: Literal["created_at", "due_date"] = "created_at",
+    sort_order: Literal["asc", "desc"] = "desc",
+    page: int = 1,
+    size: int = 10,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    tasks = task_service.get_tasks(
+    result = task_service.get_tasks(
         db, project_id, current_user.id,
         search=search, status=status_task, priority=priority, assignee_id=assignee_id,
+        sort_by=sort_by, sort_order=sort_order, page=page, size=size,
     )
+
+    item_count = len(result["items"])
+    message = f"Lấy danh sách task thành công (trang {result['page']}/{result['total_pages']}, hiển thị {item_count}/{result['total']} task)"
+
     return api_response(
         status.HTTP_200_OK,
-        f"Lấy danh sách task thành công ({len(tasks)} task)",
-        [TaskResponse.model_validate(t) for t in tasks],
+        message,
+        {
+            "items": [TaskResponse.model_validate(t) for t in result["items"]],
+            "total": result["total"],
+            "page": result["page"],
+            "size": result["size"],
+            "total_pages": result["total_pages"],
+        },
         request,
     )
