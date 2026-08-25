@@ -72,6 +72,9 @@ def update_task(db: Session, task_id: int, user_id: int, update_data: TaskUpdate
 
     update_fields = update_data.model_dump(exclude_unset=True)
 
+    if "status" in update_fields:
+        validate_status_transition(task.status, update_fields["status"])
+
     # Nếu có đổi assignee_id, kiểm tra assignee mới phải là thành viên project
     if "assignee_id" in update_fields and update_fields["assignee_id"] is not None:
         is_assignee_member = (
@@ -82,6 +85,8 @@ def update_task(db: Session, task_id: int, user_id: int, update_data: TaskUpdate
             )
             .first()
         )
+
+
         if not is_assignee_member:
             raise BadRequestException(detail="Người được giao việc phải là thành viên của dự án")
 
@@ -103,3 +108,20 @@ def delete_task(db: Session, task_id: int, user_id: int) -> None:
 
     db.delete(task)
     db.commit()
+
+VALID_STATUS_TRANSITIONS = {
+    TaskStatus.TODO: [TaskStatus.IN_PROGRESS],
+    TaskStatus.IN_PROGRESS: [TaskStatus.DONE, TaskStatus.TODO],  # cho phép lùi lại TODO nếu cần
+    TaskStatus.DONE: [TaskStatus.IN_PROGRESS],  # cho phép mở lại nếu chưa thực sự xong
+}
+
+
+def validate_status_transition(current_status: TaskStatus, new_status: TaskStatus):
+    if current_status == new_status:
+        return  # không đổi gì, không cần kiểm tra
+
+    allowed_next = VALID_STATUS_TRANSITIONS.get(current_status, [])
+    if new_status not in allowed_next:
+        raise BadRequestException(
+            detail=f"Không thể chuyển task từ '{current_status.value}' sang '{new_status.value}'"
+        )
