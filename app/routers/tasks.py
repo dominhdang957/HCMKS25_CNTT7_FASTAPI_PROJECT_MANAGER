@@ -14,7 +14,11 @@ from app.schemas.pagination import PaginatedResponse
 router = APIRouter(prefix="/projects/{project_id}/tasks", tags=["Tasks"])
 
 
-@router.post("", response_model=APIResponse)
+@router.post("",
+    response_model=APIResponse,
+    status_code=201,
+    summary="Tạo task mới",
+    description="Thành viên dự án (owner/member) có quyền tạo. Task mới luôn bắt đầu ở trạng thái TODO. Nếu gán assignee, người đó phải là thành viên của dự án.",)
 def create_task(
     project_id: int,
     task_data: TaskCreate,
@@ -30,7 +34,15 @@ def create_task(
         request,
     )
 
-@router.get("", response_model=APIResponse)
+@router.get("",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Danh sách task (có filter, search, phân trang)",
+    description=(
+        "Chỉ trả task thuộc đúng dự án này. Hỗ trợ: search theo title; "
+        "filter theo status (TODO/IN_PROGRESS/DONE), priority (LOW/MEDIUM/HIGH), assignee_id; "
+        "sort theo created_at hoặc due_date; phân trang theo page/size."
+    ),)
 def get_tasks(
     project_id: int,
     request: Request,

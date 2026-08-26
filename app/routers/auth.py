@@ -14,7 +14,9 @@ from app.models.user import User
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=APIResponse)
+@router.post("/register", response_model=APIResponse,status_code=201,
+    summary="Đăng ký tài khoản mới",
+    description="Tạo tài khoản người dùng mới. Email phải chưa từng được đăng ký. Mật khẩu tối thiểu 6 ký tự, sẽ được hash bằng bcrypt trước khi lưu.",)
 def register(user_data: UserCreate, request: Request, db: Session = Depends(get_db)):
     new_user = user_service.create_user(db, user_data)
     return api_response(
@@ -24,7 +26,11 @@ def register(user_data: UserCreate, request: Request, db: Session = Depends(get_
         request
     )
 
-@router.post("/login", response_model=APIResponse)
+@router.post("/login",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Đăng nhập",
+    description="Xác thực email/password, trả về JWT access token dùng cho các request cần đăng nhập tiếp theo (gắn vào header Authorization: Bearer <token>).",)
 def login(login_data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     user = user_service.authenticate_user(db, login_data.email, login_data.password)
 

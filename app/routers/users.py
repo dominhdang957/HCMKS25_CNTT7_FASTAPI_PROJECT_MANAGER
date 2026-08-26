@@ -12,7 +12,11 @@ from sqlalchemy.orm import Session
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.get("/me", response_model=APIResponse)
+@router.get( "/me",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Lấy thông tin cá nhân",
+    description="Trả về thông tin của user đang đăng nhập, dựa trên token gửi kèm. Không bao giờ trả password_hash.",)
 def get_my_profile(request: Request, current_user: User = Depends(get_current_user)):
     return api_response(
         status.HTTP_200_OK,
@@ -21,7 +25,11 @@ def get_my_profile(request: Request, current_user: User = Depends(get_current_us
         request
     )
 
-@router.get("", response_model=APIResponse)
+@router.get("",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Danh sách người dùng (Admin)",
+    description="Chỉ Admin mới gọi được. Hỗ trợ tìm theo tên/email (search) và lọc theo trạng thái active (is_active).",)
 def list_users(
     request: Request,
     search: Optional[str] = None,

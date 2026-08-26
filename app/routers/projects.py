@@ -15,7 +15,11 @@ from app.schemas.activity_log import ActivityLogResponse
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
-@router.post("", response_model=APIResponse)
+@router.post( "",
+    response_model=APIResponse,
+    status_code=201,
+    summary="Tạo dự án mới",
+    description="Tạo project mới, người tạo tự động trở thành OWNER (được thêm vào project_members với role OWNER).",)
 def create_project(
     project_data: ProjectCreate,
     request: Request,
@@ -27,7 +31,11 @@ def create_project(
     )
     return api_response(status.HTTP_201_CREATED,"Tạo dự án thành công",ProjectResponse.model_validate(new_project),request)
 
-@router.get("", response_model=APIResponse)
+@router.get("",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Danh sách dự án của tôi",
+    description="Trả về các project mà user hiện tại là owner hoặc member. Hỗ trợ tìm theo tên (search).",)
 def list_projects(
     request: Request,
     search: Optional[str] = None,
@@ -42,7 +50,12 @@ def list_projects(
         request,
     )
 
-@router.get("/{project_id}", response_model=APIResponse)
+@router.get("/{project_id}",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Chi tiết dự án",
+    description="Chỉ thành viên (owner hoặc member) của dự án mới xem được. Trả 404 nếu không tồn tại, 403 nếu không phải thành viên.",
+)
 def get_project(
     project_id: int,
     request: Request,
@@ -58,7 +71,11 @@ def get_project(
     )
 
 
-@router.patch("/{project_id}", response_model=APIResponse)
+@router.patch("/{project_id}",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Cập nhật dự án",
+    description="Chỉ OWNER được cập nhật. Hỗ trợ cập nhật một phần (chỉ gửi field muốn đổi).",)
 def update_project(
     project_id: int,
     update_data: ProjectUpdate,
@@ -75,7 +92,11 @@ def update_project(
     )
 
 
-@router.delete("/{project_id}", response_model=APIResponse)
+@router.delete("/{project_id}",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Xóa dự án",
+    description="Chỉ OWNER được xóa. Xóa luôn toàn bộ project_members liên quan.",)
 def delete_project(
     project_id: int,
     request: Request,
@@ -90,7 +111,11 @@ def delete_project(
         request,
     )
 
-@router.post("/{project_id}/members", response_model=APIResponse)
+@router.post("/{project_id}/members",
+    response_model=APIResponse,
+    status_code=201,
+    summary="Thêm thành viên",
+    description="Chỉ OWNER được thêm. Không cho gán role OWNER qua API này, không cho thêm trùng user đã là thành viên.",)
 def add_member(
     project_id: int,
     member_data: ProjectMemberCreate,
@@ -106,7 +131,11 @@ def add_member(
         request,
     )
 
-@router.delete("/{project_id}/members/{user_id}", response_model=APIResponse)
+@router.delete("/{project_id}/members/{user_id}",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Xóa thành viên",
+    description="Chỉ OWNER được xóa. Không thể xóa chính OWNER khỏi dự án.",)
 def remove_member(
     project_id: int,
     user_id: int,
@@ -122,7 +151,11 @@ def remove_member(
         request,
     )
 
-@router.get("/{project_id}/members", response_model=APIResponse)
+@router.get("/{project_id}/members",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Danh sách thành viên",
+    description="Trả danh sách thành viên kèm role (OWNER/MEMBER). Owner hoặc member đều xem được.",)
 def get_members(
     project_id: int,
     request: Request,
@@ -138,7 +171,11 @@ def get_members(
     )
 
 
-@router.get("/{project_id}/logs", response_model=APIResponse)
+@router.get("/{project_id}/logs",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Lịch sử hoạt động (Activity log)",
+    description="Ghi nhận các thao tác quan trọng: tạo/sửa dự án, thêm/xóa thành viên. Sắp xếp mới nhất lên đầu.",)
 def get_logs(
     project_id: int,
     request: Request,

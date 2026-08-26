@@ -11,7 +11,11 @@ from app.services import task_service
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 
-@router.get("/{task_id}", response_model=APIResponse)
+@router.get("/{task_id}",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Chi tiết task",
+    description="Chỉ thành viên của dự án chứa task mới xem được.",)
 def get_task(
     task_id: int,
     request: Request,
@@ -29,7 +33,15 @@ def get_task(
 
 
 
-@router.patch("/{task_id}", response_model=APIResponse)
+@router.patch("/{task_id}",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Cập nhật task",
+    description=(
+        "Permission: OWNER được sửa mọi field. ASSIGNEE chỉ được đổi status. "
+        "Member thường (không phải owner/assignee) không được sửa gì. "
+        "Status phải theo đúng luồng: TODO -> IN_PROGRESS -> DONE (có thể lùi 1 bước)."
+    ),)
 def update_task(
     task_id: int,
     update_data: TaskUpdate,
@@ -45,7 +57,11 @@ def update_task(
         request,
     )
 
-@router.delete("/{task_id}", response_model=APIResponse)
+@router.delete("/{task_id}",
+    response_model=APIResponse,
+    status_code=200,
+    summary="Xóa task",
+    description="Chỉ OWNER của dự án được xóa task.",)
 def delete_task(
     task_id: int,
     request: Request,
