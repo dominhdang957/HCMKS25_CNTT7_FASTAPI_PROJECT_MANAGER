@@ -10,36 +10,74 @@ from sqlalchemy import asc,desc
 
 
 
-def create_task(db: Session, project_id: int, user_id: int, task_data: TaskCreate) -> Task:
-    # Bước 1: kiểm tra project tồn tại + user là thành viên (owner hoặc member)
-    check_is_member(db, project_id, user_id)
+def create_task(
+    db: Session,
+    project_id: int,
+    user_id: int,
+    task_data: TaskCreate
+) -> Task:
 
-    # Bước 2: nếu có assignee_id, kiểm tra assignee phải là thành viên CỦA project này
+    # Bước 1: kiểm tra user có trong project
+    project_member = (
+        db.query(ProjectMember)
+        .filter(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user_id
+        )
+        .first()
+    )
+
+    if not project_member:
+        raise BadRequestException(
+            detail="Bạn không phải thành viên của dự án"
+        )
+
+    # Bước 2: kiểm tra assignee
     if task_data.assignee_id is not None:
+
+        # Member chỉ được tạo task cho chính mình
+        if (
+            project_member.role == ProjectMemberRole.MEMBER
+            and task_data.assignee_id != user_id
+        ):
+            raise BadRequestException(
+                detail="Member không có quyền giao task cho người khác"
+            )
+
+        # Kiểm tra assignee có thuộc project không
         is_assignee_member = (
             db.query(ProjectMember)
             .filter(
                 ProjectMember.project_id == project_id,
-                ProjectMember.user_id == task_data.assignee_id,
+                ProjectMember.user_id == task_data.assignee_id
             )
             .first()
         )
-        if not is_assignee_member:
-            raise BadRequestException(detail="Người được giao việc phải là thành viên của dự án")
 
-    # Bước 3: tạo task
+        if not is_assignee_member:
+            raise BadRequestException(
+                detail="Người được giao việc phải là thành viên của dự án"
+            )
+
+    # Bước 3: nếu không truyền assignee_id
+    # thì task mặc định giao cho chính người tạo
+    assignee_id = task_data.assignee_id or user_id
+
+    # Bước 4: tạo task
     new_task = Task(
         project_id=project_id,
         title=task_data.title,
         description=task_data.description,
-        assignee_id=task_data.assignee_id,
+        assignee_id=assignee_id,
         priority=task_data.priority,
         due_date=task_data.due_date,
-        status=TaskStatus.TODO,  # task mới luôn bắt đầu ở trạng thái TODO
+        status=TaskStatus.TODO
     )
+
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
+
     return new_task
 
 def get_tasks(

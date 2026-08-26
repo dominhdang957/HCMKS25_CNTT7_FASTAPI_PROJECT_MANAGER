@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.dependencies.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.task import TaskCreate, TaskResponse
+from app.schemas.task import TaskCreate, TaskResponse,TaskResponseList
 from app.schemas.response import APIResponse,api_response
 from app.services import task_service
 from app.models.task import TaskStatus, TaskPriority
@@ -70,7 +70,7 @@ def get_tasks(
         status.HTTP_200_OK,
         message,
         {
-            "items": [TaskResponse.model_validate(t) for t in result["items"]],
+            "items": [TaskResponseList.model_validate(t) for t in result["items"]],
             "total": result["total"],
             "page": result["page"],
             "size": result["size"],

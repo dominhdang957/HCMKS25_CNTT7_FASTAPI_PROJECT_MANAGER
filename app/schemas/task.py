@@ -25,6 +25,13 @@ class TaskUpdate(BaseModel):
     due_date: Optional[datetime] = None
 
 
+class TaskResponseList(BaseModel):
+    title: str
+    description: Optional[str] = None
+    status: TaskStatus
+    priority: TaskPriority = TaskPriority.MEDIUM
+    model_config = ConfigDict(from_attributes=True)
+
 class TaskResponse(TaskBase):
     id: int
     project_id: int
